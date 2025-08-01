@@ -86,66 +86,231 @@ The application expects a semicolon-delimited text file (`.txt`) with the follow
 
 ## Step-by-Step Guide to Recreate the Project
 
-Here is a breakdown of the tasks to recreate this project from scratch.
+Here is a more detailed, beginner-friendly guide to recreating this project.
 
 ### Task 1: Create the `Cardholder` Abstract Class
 
-1.  Define an abstract class `Cardholder`.
-2.  Add protected fields for `name`, `acctNumber`, `prevBalance`, `payment`, and an array of `double` for `purchases`.
-3.  Create a constructor that accepts the account number and name.
-4.  Implement getter and setter methods for all fields.
-5.  Add methods to calculate interest (`getInterest()`), current balance (`getCurrentBalance()`), and minimum payment (`getMinPayment()`).
-6.  Define an abstract method `calcPurchasePoints()` which will be implemented by the subclasses.
-7.  Override the `toString()` method to create a formatted string representation of the cardholder's data.
+An **abstract class** is like a blueprint for other classes. It can't be used to create objects directly, but it defines common features for its subclasses. Here, `Cardholder` will define what all cardholders have in common.
+
+1.  **Create the file `Cardholder.java`**.
+2.  **Define the class structure**:
+
+    ```java
+    import java.text.DecimalFormat;
+    import java.util.Arrays;
+
+    public abstract class Cardholder implements Comparable<Cardholder> {
+        // Fields (variables) for the class
+        protected String category;
+        protected String acctNumber;
+        protected String name;
+        protected double prevBalance;
+        protected double payment;
+        protected double[] purchases;
+
+        public static final double INTEREST_RATE = 0.01;
+
+        // Constructor: A special method to create objects
+        public Cardholder(String acctNumberIn, String nameIn) {
+            acctNumber = acctNumberIn;
+            name = nameIn;
+            purchases = new double[0]; // Initialize as an empty array
+        }
+
+        // --- Getters and Setters ---
+        // Methods to get and set the values of the fields.
+        // Example:
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String nameIn) {
+            name = nameIn;
+        }
+        // (Add getters and setters for all other fields)
+
+        // --- Business Logic Methods ---
+        public double totalPurchases() {
+            double total = 0;
+            for (double purchase : purchases) {
+                total += purchase;
+            }
+            return total;
+        }
+
+        public double getInterest() {
+            return (prevBalance - payment) * INTEREST_RATE;
+        }
+
+        public double getCurrentBalance() {
+            return prevBalance - payment + getInterest() + totalPurchases();
+        }
+
+        // Abstract method: Must be implemented by subclasses
+        public abstract int calcPurchasePoints();
+
+        // toString method: For printing the object's state
+        @Override
+        public String toString() {
+            // Use DecimalFormat for nice currency formatting
+            DecimalFormat df = new DecimalFormat("$#,##0.00");
+            return category + "\nAcctNo/Name: " + acctNumber + " " + name
+                + "\nPrevious Balance: " + df.format(prevBalance)
+                /* ... and so on for the other fields ... */;
+        }
+
+        // compareTo method: For sorting by name
+        @Override
+        public int compareTo(Cardholder other) {
+            return this.name.compareTo(other.name);
+        }
+    }
+    ```
 
 ### Task 2: Implement the Concrete `Cardholder` Subclasses
 
-1.  **`SapphireCardholder`**:
-    - Extend `Cardholder`.
-    - Implement `calcPurchasePoints()` to return 1 point for every dollar spent on total purchases.
-2.  **`DiamondCardholder`**:
-    - Extend `Cardholder`.
-    - Add a discount rate for purchases.
-    - Implement `calcPurchasePoints()` to award 3 points per dollar after a discount.
-3.  **`BlueDiamondCardholder`**:
-    - Extend `Cardholder`.
-    - Implement a higher discount rate.
-    - Implement `calcPurchasePoints()` to award 5 points per dollar after a discount, with a bonus if purchases exceed a certain threshold.
+Now, create the specific types of cardholders. They will **inherit** all the properties from `Cardholder` and provide their own implementation for `calcPurchasePoints()`.
+
+1.  **Create the file `SapphireCardholder.java`**:
+
+    ```java
+    public class SapphireCardholder extends Cardholder {
+        // Constructor
+        public SapphireCardholder(String acctNumberIn, String nameIn) {
+            super(acctNumberIn, nameIn); // Calls the parent class constructor
+            this.category = "Sapphire Cardholder";
+        }
+
+        // Implementation of the abstract method
+        @Override
+        public int calcPurchasePoints() {
+            // 1 point per dollar of total purchases
+            return (int) totalPurchases();
+        }
+    }
+    ```
+2.  **Create `DiamondCardholder.java` and `BlueDiamondCardholder.java`** in a similar way, following the logic described in their respective `.java` files.
 
 ### Task 3: Implement the `CurrentBalanceComparator`
 
-1.  Create a class `CurrentBalanceComparator` that implements `Comparator<Cardholder>`.
-2.  Override the `compare()` method to sort two `Cardholder` objects based on their current balance in descending order.
+A **Comparator** is used to define custom sorting rules. We'll use it to sort cardholders by their balance.
+
+1.  **Create the file `CurrentBalanceComparator.java`**:
+
+    ```java
+    import java.util.Comparator;
+
+    public class CurrentBalanceComparator implements Comparator<Cardholder> {
+        @Override
+        public int compare(Cardholder c1, Cardholder c2) {
+            // Sort in descending order
+            if (c1.getCurrentBalance() > c2.getCurrentBalance()) {
+                return -1;
+            } else if (c1.getCurrentBalance() < c2.getCurrentBalance()) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+    ```
 
 ### Task 4: Create the Custom `InvalidCategoryException`
 
-1.  Create a new class `InvalidCategoryException` that extends `Exception`.
-2.  In the constructor, call the `super()` constructor with a descriptive error message like "*** invalid category ***".
+A **custom exception** helps us handle specific errors gracefully.
+
+1.  **Create the file `InvalidCategoryException.java`**:
+
+    ```java
+    public class InvalidCategoryException extends Exception {
+        public InvalidCategoryException() {
+            super("*** invalid category ***");
+        }
+    }
+    ```
 
 ### Task 5: Implement the `CardholderProcessor`
 
-1.  Create a class `CardholderProcessor`.
-2.  Add two private fields: an array of `Cardholder` objects and an array of `String` for invalid records.
-3.  Implement a method `readCardholderFile(String fileName)`:
-    - Use a `Scanner` to read the file line by line.
-    - Inside a `try-catch` block, parse each line using `String.split(";")` or a `Scanner` with a delimiter.
-    - Use a `switch` statement on the category to create the correct `Cardholder` subclass.
-    - Populate the object with data from the line.
-    - Add the new object to the `Cardholder` array.
-    - Catch `InvalidCategoryException` and `NumberFormatException`, adding the invalid line to the `invalidRecords` array.
-4.  Implement methods to generate reports:
-    - `generateReport()`: Loop through the cardholders and use their `toString()` method.
-    - `generateReportByName()`: Sort the array using `Arrays.sort()` (which uses the `compareTo` method in `Cardholder`) and then generate the report.
-    - `generateReportByCurrentBalance()`: Sort the array using `Arrays.sort()` with an instance of `CurrentBalanceComparator`, then generate the report.
-    - `generateInvalidRecordsReport()`: Loop through the `invalidRecords` array and format the output.
+This class does the heavy lifting: reading the file and managing the data.
+
+1.  **Create the file `CardholderProcessor.java`**.
+2.  **Add fields** for the cardholder array and invalid records array.
+3.  **Implement the `readCardholderFile` method**:
+
+    ```java
+    import java.io.File;
+    import java.io.FileNotFoundException;
+    import java.util.Scanner;
+    import java.util.Arrays;
+
+    public class CardholderProcessor {
+        private Cardholder[] cardholders = new Cardholder[0];
+        private String[] invalidRecords = new String[0];
+
+        public void readCardholderFile(String fileName) throws FileNotFoundException {
+            Scanner fileScanner = new Scanner(new File(fileName));
+            while (fileScanner.hasNext()) {
+                String line = fileScanner.nextLine();
+                try (Scanner lineScanner = new Scanner(line)) {
+                    lineScanner.useDelimiter(";");
+                    char category = lineScanner.next().charAt(0);
+                    // ... (rest of the parsing logic)
+
+                    // Example for Sapphire
+                    if (category == '1') {
+                        String acct = lineScanner.next();
+                        String name = lineScanner.next();
+                        SapphireCardholder sc = new SapphireCardholder(acct, name);
+                        // ... (set balances, purchases, etc.)
+                        // Add to array
+                        cardholders = Arrays.copyOf(cardholders, cardholders.length + 1);
+                        cardholders[cardholders.length - 1] = sc;
+                    }
+                    // ... (else if for other categories)
+                } catch (Exception e) {
+                    // Add to invalid records
+                    invalidRecords = Arrays.copyOf(invalidRecords, invalidRecords.length + 1);
+                    invalidRecords[invalidRecords.length - 1] = line + " *** " + e.toString();
+                }
+            }
+        }
+        // ... (Implement report generation methods)
+    }
+    ```
 
 ### Task 6: Create the Main Application
 
-1.  Create a class `CardholdersPart3App` with a `public static void main(String[] args)` method.
-2.  Check if a command-line argument (the file name) is provided.
-3.  Create an instance of `CardholderProcessor`.
-4.  Call the `readCardholderFile()` method, wrapped in a `try-catch` block to handle `FileNotFoundException`.
-5.  Call the various report generation methods and print their output to the console.
+This class will run the entire application.
+
+1.  **Create `CardholdersPart3App.java`**:
+
+    ```java
+    import java.io.FileNotFoundException;
+
+    public class CardholdersPart3App {
+        public static void main(String[] args) {
+            // Check for command-line argument
+            if (args.length == 0) {
+                System.out.println("File name expected as command line argument.");
+                System.out.println("Program ending.");
+                return; // Exit
+            }
+
+            String fileName = args[0];
+            CardholderProcessor processor = new CardholderProcessor();
+
+            try {
+                processor.readCardholderFile(fileName);
+                // Print reports
+                System.out.println(processor.generateReport());
+                System.out.println(processor.generateReportByName());
+                // ... etc.
+            } catch (FileNotFoundException e) {
+                System.out.println("*** Attempted to read file: " + fileName);
+            }
+        }
+    }
+    ```
 
 ## Hints and Tips
 
